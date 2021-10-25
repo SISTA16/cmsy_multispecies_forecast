@@ -1,5 +1,5 @@
 # CMSY Multi Species forecast
-Multi species forecasting method based on the CMSY stock assessment method's output.
+Multi species forecasting method based on the CMSY stock assessment method's output. The CSV files report examples of inputs to the method, e.g. for multiple species (Out_March062019_O_Stocks_ID_19_Med.csv), single species (Out_March062019_O_Stocks_ID_19_Med_single.csv), aggregated groups of species (Out_Ukr_ID.csv).
 
 ## CMSY_recovery_forecasts_legacy.R ##
 Source code used for the experiments reported in the paper
