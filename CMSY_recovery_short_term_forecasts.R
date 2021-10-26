@@ -8,7 +8,7 @@
 
 #upload data
 #datafile =  "Overall_stocks_outputs.csv"
-datafile =  "Out_Ukr_ID.csv"#"Out_March062019_O_Stocks_ID_19_Med_single.csv"
+datafile =  "Out_SingleSpecies.csv"#"Out_March062019_O_Stocks_ID_19_Med_single.csv"
 #DATA = read.csv("All_stocks_q.csv") 
 DATA = read.csv(datafile) 
 
@@ -22,13 +22,13 @@ mcs = 1000
 ci = rep(c(1,rep(0,(round(mcs/50,1)-1))),mcs)
 
 # get Info
-Region = DATA$Region
+Region = factor(DATA$Region)
 Subregion = DATA$Subregion
 
 longterm = FALSE
 
 # number of projection years 
-nyrs =  15
+nyrs =  3
 if(longterm==TRUE) nyrs =15 
 # start year
 styr = 2017
@@ -60,6 +60,7 @@ SPF = function(B_Bmsy,Bmsy,Fmsy,Fcur,Fx,nyrs){ # Ft = Target F
   for(y in 1:(nyrs+1))
   {
     Fproj = ifelse(FxRed <  rep(0.95,length(Fmsy)) & Pmsy[,y]<0.5,2*Pmsy[,y]*Fmsy*FxRed,Fmsy*FxRed)
+    
     
    # for (ifx in 1:length(FxRed)){
     #  if(FxRed [ifx]== 0.5) Fproj = ifelse(Pmsy[,y][ifx]<0.5,Fmsy*0.01,Fproj)
@@ -170,12 +171,22 @@ Pmsy.bin = ifelse(rPmsy<1,0,1)
 Pmsy05 = ifelse(rPmsy<0.5,0,1) #ifelse(rPmsy<0.5 & rPmsy >= 0.2,0,1)
 Pmsy02 = ifelse(rPmsy<0.2,0,1)
 
-Pmsy.MCS[i,] =  apply(Pmsy.bin,2,sum)/apply(Pmsy.bin,2,length)
-Pmsy05.MCS[i,] =  apply(Pmsy05,2,sum)/apply(Pmsy05,2,length)
-Pmsy02.MCS[i,] =  apply(Pmsy02,2,sum)/apply(Pmsy02,2,length)
-C.MCS[i,] =  apply(rCatch,2,sum,na.rm=T)
-B.MCS[i,] =  apply(rBt,2,sum)#/apply(rBt,2,sum)
-dB.MCS[i,] = apply(rBt,2,sum)/sum(rBt[,1])
+if(nrow(DATA)>=2){
+  Pmsy.MCS[i,] =  apply(Pmsy.bin,2,sum)/apply(Pmsy.bin,2,length)
+  Pmsy05.MCS[i,] =  apply(Pmsy05,2,sum)/apply(Pmsy05,2,length)
+  Pmsy02.MCS[i,] =  apply(Pmsy02,2,sum)/apply(Pmsy02,2,length)
+  C.MCS[i,] =  apply(rCatch,2,sum,na.rm=T)
+  B.MCS[i,] =  apply(rBt,2,sum)#/apply(rBt,2,sum)
+  dB.MCS[i,] = apply(rBt,2,sum)/sum(rBt[,1])
+}else{
+  # modification to accomodate single species
+  Pmsy.MCS[i,] =  Pmsy.bin
+  Pmsy05.MCS[i,] =Pmsy05
+  Pmsy02.MCS[i,] =  Pmsy02
+  C.MCS[i,] =  rCatch
+  B.MCS[i,] =  rBt#/apply(rBt,2,sum)
+  dB.MCS[i,] = rBt/sum(rBt[,1])
+}
 
 }
 
@@ -264,12 +275,16 @@ for(j in 1:length(Regs)){
   years = d[,1]
   sc = seq(2,11,3) # select cols
   
-  ylab= "B/Bmsy"
-  plot(x = years,y = seq(0,100,by = 100/(length(years)-1)),ylim=c(0,100),xlim=c(years[2],(years[nyrs]+2.3)),xaxs="i",yaxs="i",frame=FALSE,xlab="",ylab="",type="n",lwd=2,main=paste(Regs[j]), yaxt="n")
+  if(nrow(dat)>1){
+    ylab= "Stocks at Bmsy (%)"
+  }else{
+    ylab= "Probability of Stock at Bmsy (%)"
+  }
+  plot(x = years,y = seq(0,100,by = 100/(length(years)-1)),ylim=c(0,100),xlim=c(years[2],(years[nyrs]+1.2)),xaxs="i",yaxs="i",frame=FALSE,xlab="",ylab="",type="n",lwd=2,main=paste(Regs[j]), yaxt="n", xaxt='n')
   
   if(j==1){axis(2,labels = T)} else {axis(2,labels = F)}
   axis(2,seq(-1e6,1e6,2e6))
-  
+  axis(1,seq(years[2],(years[nyrs]+1),1))
   lines(c(0,years[nyrs]+1),rep(0,2))
   
   # Add colors
@@ -283,12 +298,22 @@ for(j in 1:length(Regs)){
   
   grey.scale = rev(c(0.6,0.7,0.8,0.9))
   
-  for(f in 1:4) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=adjustcolor(grey(grey.scale[f] ,1),alpha=0.3),border = NA)
-  
-  for(f in 1:4){
-    lines(years,d[,sc[f]],lwd=2,lty=f)
-    text(years[nyrs]+1.2, d[nyrs*1.0,sc[f]],paste(Fx[f]),cex=1)  
+  if(nyrs>=6){
+    for(f in 1:4) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=adjustcolor(grey(grey.scale[f] ,1),alpha=0.3),border = NA)
+    
+    for(f in 1:4){
+      lines(years,d[,sc[f]],lwd=2,lty=f)
+      text(years[nyrs]+0.8, d[nyrs*1.0,sc[f]],paste(Fx[f]),cex=1)  
+    }
+    
+  }else{
+    
+    polygon(c(years,rev(years)),c(apply(d[,sc+1],1,mean),rev(apply(d[,sc+2],1,mean))),col=grey(rev(grey.scale)[1] ,0.8),border = NA)
+    lines(years,apply(d[,sc],1,mean),lwd=2,lty=1) # mean
+    
   }
+  
+  
 }
 mtext(paste(xlab), side=1, outer=T, at=0.5,line=1,cex=0.9)
 mtext(paste(ylab), side=2, outer=T, at=0.5,line=1,cex=0.9)
@@ -313,8 +338,8 @@ for(j in 1:length(Regs)){
   sc = seq(2,11,3) # select cols
 
   # CATCH
-plot(years,years,ylim=c(0,sum(MSY)*1.2),xlim=c(years[2],years[nyrs]+1),xaxs="i",yaxs="i",frame=FALSE,xlab="Projection Years",ylab="",type="n",lwd=2,main=paste(Regs[j]))
-axis(1,seq(0,1e6,1e6))
+plot(years,years,ylim=c(0,sum(MSY)*1.2),xlim=c(years[2],years[nyrs]+1.2),xaxs="i",yaxs="i",frame=FALSE,xlab="Projection Years",ylab="",type="n",lwd=2,main=paste(Regs[j]))
+axis(1,seq(years[2],(years[nyrs]+1),1))
 axis(2,seq(-1e6,1e6,2e6))
 
 lines(c(0,years[nyrs]+1),rep(sum(lcl.MSY),2),lty=2)
@@ -324,12 +349,16 @@ text(years[1]+2.1,sum(MSY)*1.03,"MSY")
 lines(c(0,years[nyrs]+1),rep(0,2),lwd=1.2)
 
 legend("topleft",paste("N =",(nrow(dat))),bty="n",cex=1, x.intersp = -0.5)
-for(f in 4:1) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=grey(rev(grey.scale)[f] ,0.8),border = NA)
-
-for(f in 1:4){
-  lines(years,d[,sc[f]],lwd=2,lty=f)
-  text(years[6]+0.3, d[6,sc[f]]*ifelse(f<3,0.95,1.05),paste(Fx[f]),cex=1.)  
+if(nyrs>=6){
+  for(f in 4:1) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=grey(rev(grey.scale)[f] ,0.8),border = NA)
+  for(f in 1:4){
+    lines(years,d[,sc[f]],lwd=2,lty=f)
+    text(years[6]+0.3, d[6,sc[f]]*ifelse(f<3,0.95,1.05),paste(Fx[f]),cex=1.) 
+  }
   
+}else{
+  polygon(c(years,rev(years)),c(apply(d[,sc+1],1,mean),rev(apply(d[,sc+2],1,mean))),col=grey(rev(grey.scale)[1] ,0.8),border = NA)
+  lines(years,apply(d[,sc],1,mean),lwd=2,lty=1) # mean
 }
 } 
 mtext(paste(xlab), side=1, outer=T, at=0.5,line=1,cex=0.9)
@@ -353,20 +382,25 @@ for(j in 1:length(Regs)){
   
   ylab=expression('B /  B'[forecast_initial_year]*' (%)')
 # B/Bstartyear
-plot(years,years,ylim=range(80,300),xlim=c(years[2],years[nyrs]+2.3),xaxs="i",yaxs="i",frame=FALSE,axes=F,ylab="",type="n",lwd=2,main=paste(Regs[j]))
+plot(years,years,ylim=range(80,300),xlim=c(years[2],years[nyrs]+1.2),xaxs="i",yaxs="i",frame=FALSE,axes=F,ylab="",type="n",lwd=2,main=paste(Regs[j]))
 if(j==1){axis(2,labels = T)} else {axis(2,labels = F)}
-axis(1,labels = T)
+axis(1,seq(years[2],(years[nyrs]+1),1))
 axis(2,seq(-1e6,1e6,2e6))
 lines(c(0,years[nyrs]+1),rep(80,2))
 
 
 legend("topleft",paste("N =",(nrow(dat))),bty="n",cex=1, x.intersp = -0.5)
-for(f in 1:4) polygon(c(years,rev(years)),c(d[,sc[f]+1]*100,rev(d[,sc[f]+2]*100)),col=grey(grey.scale[f] ,1),border = NA)
-
-for(f in 1:4){
-  lines(years,d[,sc[f]]*100,lwd=2,lty=f)
-  #text(years[nyrs]+0., d[nyrs,sc[f]]*100*ifelse(f>2,0.95,1.03),paste(Fx[f],"Fmsy"))  
-  text(years[nyrs]+1.7, d[nyrs,sc[f]]*100,paste(Fx[f]),cex=1)
+if(nyrs>=6){
+  for(f in 4:1) polygon(c(years,rev(years)),c(d[,sc[f]+1]*100,rev(d[,sc[f]+2]*100)),col=grey(grey.scale[f] ,1),border = NA)
+  for(f in 1:4){
+    lines(years,d[,sc[f]]*100,lwd=2,lty=f)
+    #text(years[nyrs]+0., d[nyrs,sc[f]]*100*ifelse(f>2,0.95,1.03),paste(Fx[f],"Fmsy"))  
+    text(years[nyrs]+1.7, d[nyrs,sc[f]]*100,paste(Fx[f]),cex=1)
+  }
+  
+}else{
+  polygon(c(years,rev(years)),c(apply(d[,sc+1],1,mean)*100,rev(apply(d[,sc+2],1,mean)*100)),col=grey(grey.scale[1] ,1),border = NA)
+  lines(years,apply(d[,sc],1,mean)*100,lwd=2,lty=1) # mean
 }
 lines(c(0,years[nyrs+1]),rep(100,2),lty=2)
 }
@@ -402,10 +436,34 @@ get_SPF = SPF(B_Bmsy,Bmsy,Fmsy,Fcur,Fx[f],nyrs)
 Catches = get_SPF$Catch 
 dC = Catches[,2:ncol(Catches)]-Catches[,1:(ncol(Catches)-1)]
 plot(years,years,type="n",ylim=range(dC),xlim=c(2017,2022),ylab=expression(Delta*"Catch (mt)"))
-for(i in 1:nrow(Catches)){ lines(years[-1],dC[i,])}
+
 
 # Find top ten
-max.dC = dat[order(-dC[,5]),][1:15,]
+
+
+# code modified to accept short forecast and single species
+if(nyrs < 6){
+  colselection=nyrs
+}else{
+  colselection=5
+}
+if(nrow(DATA)>=2){
+  for(i in 1:nrow(Catches)){ 
+    
+    lines(years[-1],dC[i,])
+    
+  }
+  max.dC = dat[order(-dC[,colselection]),][1:15,]
+}else{
+  for(i in 1:nrow(Catches)){ 
+    
+    lines(years[-1],dC)
+    
+  }
+  max.dC = dat[,][1:15,]
+}
+
+# End of modification
 legend("topright",c("Top 20 Stocks",paste(1:20,max.dC$Stock,", B/Bmsy =",round(max.dC$B_Bmsy,2),", F/Fmsy =",round(max.dC$F_msy,2))),cex=0.8,bty="n")
 
 }
@@ -432,11 +490,11 @@ for(j in 1:length(Regs)){
   ylab="Depleted B/Bmsy"
   d[,-1] =  100-d[,-1] 
   sc = seq(2,11,3) # select cols
-  plot(years,years,ylim=c(0,65),xlim=c(years[2],years[nyrs]+2.3),xaxs="i",yaxs="i",frame=FALSE,axes=F,ylab="",type="n",lwd=2,main=paste(Regs[j]))
+  plot(years,years,ylim=c(0,65),xlim=c(years[2],years[nyrs]+1.2),xaxs="i",yaxs="i",frame=FALSE,axes=F,ylab="",type="n",lwd=2,main=paste(Regs[j]))
   
   if(j==1){axis(2,labels = T)} else {axis(2,labels = F)}
   #axis(2,labels = T)
-  axis(1,labels = T)
+  axis(1,seq(years[2],(years[nyrs]+1),1))
   axis(2,seq(-1e6,1e6,2e6))
   lines(c(0,years[nyrs]+1),rep(0,2))
   
@@ -446,12 +504,19 @@ for(j in 1:length(Regs)){
   
   grey.scale = (c(0.6,0.7,0.8,0.9))
   
-  for(f in 1:4) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=grey(grey.scale[f] ,1),border = NA)
-  
-  for(f in 1:4){
-    lines(years,d[,sc[f]],lwd=2,lty=f)
-    #text(years[nyrs]+0.,d[nyrs*1.0,sc[f]]+1,paste(Fx[f],"Fmsy"))  
-    text(years[nyrs]+1.7, d[nyrs,sc[f]],paste(Fx[f]),cex=1)
+  if(nyrs>=6){
+    for(f in 1:4) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=grey(grey.scale[f] ,1),border = NA)
+    
+    for(f in 1:4){
+      lines(years,d[,sc[f]],lwd=2,lty=f)
+      #text(years[nyrs]+0.,d[nyrs*1.0,sc[f]]+1,paste(Fx[f],"Fmsy"))  
+      text(years[nyrs]+1.7, d[nyrs,sc[f]],paste(Fx[f]),cex=1)
+    }
+    
+  }else{
+    
+    polygon(c(years,rev(years)),c(apply(d[,sc+1],1,mean),rev(apply(d[,sc+2],1,mean))),col=grey(grey.scale[1] ,1),border = NA)
+    lines(years,apply(d[,sc],1,mean),lwd=2,lty=1) # mean
   }
 }
 
@@ -478,11 +543,11 @@ for(j in 1:length(Regs)){
   ylab="Collapsed B/Bmsy"
   d[,-1] =  100-d[,-1] 
   sc = seq(2,11,3) # select cols
-  plot(years,years,ylim=c(0,50),xlim=c(years[2],years[nyrs]+2.3),xaxs="i",yaxs="i",frame=FALSE,axes=F,ylab="",type="n",lwd=2,main=paste(Regs[j]))
+  plot(years,years,ylim=c(0,50),xlim=c(years[2],years[nyrs]+1.2),xaxs="i",yaxs="i",frame=FALSE,axes=F,ylab="",type="n",lwd=2,main=paste(Regs[j]))
   
   if(j==1){axis(2,labels = T)} else {axis(2,labels = F)}
   #axis(2,labels = T)
-  axis(1,labels = T)
+  axis(1,seq(years[2],(years[nyrs]+1),1))
   axis(2,seq(-1e6,1e6,2e6))
   lines(c(0,years[nyrs]+1),rep(0,2))
   
@@ -492,12 +557,19 @@ for(j in 1:length(Regs)){
   
   grey.scale = (c(0.6,0.7,0.8,0.9))
   
-  for(f in 1:4) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=grey(grey.scale[f] ,1),border = NA)
-  
-  for(f in 1:4){
-    lines(years,d[,sc[f]],lwd=2,lty=f)
-    #text(years[nyrs]+0.,d[nyrs*1.0,sc[f]]+1,paste(Fx[f],"Fmsy"))  
-    text(years[nyrs]+1.7, d[nyrs,sc[f]],paste(Fx[f]),cex=1)
+  if(nyrs>=6){
+    for(f in 1:4) polygon(c(years,rev(years)),c(d[,sc[f]+1],rev(d[,sc[f]+2])),col=adjustcolor(grey(grey.scale[f] ,1),alpha=0.3),border = NA)
+    
+    for(f in 1:4){
+      lines(years,d[,sc[f]],lwd=2,lty=f)
+      text(years[nyrs]+0.8, d[nyrs*1.0,sc[f]],paste(Fx[f]),cex=1)  
+    }
+    
+  }else{
+    
+    polygon(c(years,rev(years)),c(apply(d[,sc+1],1,mean),rev(apply(d[,sc+2],1,mean))),col=grey(rev(grey.scale)[1] ,0.8),border = NA)
+    lines(years,apply(d[,sc],1,mean),lwd=2,lty=1) # mean
+    
   }
 }
 
