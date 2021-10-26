@@ -12,3 +12,7 @@ Code used for the experiments reported in the paper
 "Scanu, M., Armelloni, E. N., Coro, G., Masnadi, F., Angelini, S., & Scarcella, G. (2021). Data poor approach for the assessment of the main target species of rapido trawl fishery in Adriatic Sea. Frontiers in Marine Science, 8, 681."
 
 which assumes that F/Fmsy can be set for all species to a portion of the value in the latest year (e.g. 0.5 F_latest_year/Fmsy, etc.) for the forecast years.
+
+## CMSY_recovery_short_term_forecasts.R ##
+
+This version builds on "CMSY_recovery_forecasts_based_on_last_year_f_fmsy.R". It accept short term forecasts and single species dataset. In the case of short term forecast (from 1 to 5 years), scenarios are not activated and projections base on Fcur for last year.
